@@ -2,7 +2,6 @@ import tensorflow as tf
 from tensorflow.keras.backend import tanh
 import numpy as np
 from tensorflow.keras.utils import load_img
-# from skimage.io import imread
 import math
 
 
@@ -22,7 +21,6 @@ class RegressionSequence(tf.keras.utils.Sequence):
 
         return np.array([
             np.array(load_img(f"{self.dir}/{file_name.split('_')[0]}/{file_name}", color_mode=self.color_mode))
-            # imread(f"{self.dir}/{file_name.split('_')[0]}/{file_name}", as_gray=True)
             for file_name in batch_x]), np.array(batch_y)
 
 
@@ -49,27 +47,41 @@ class Fourier2D(tf.keras.layers.experimental.preprocessing.PreprocessingLayer):
         self.slice = sl
 
     def call(self, x: tf.Tensor):
-
-        # def fourier(hologram):  # ToDo: Test with log only
-        #     return tf.concat([
-        #         tf.math.real(hologram[:, :, self.slice]),
-        #         tf.expand_dims(tf.math.log(tf.math.square(
-        #             tf.abs(tf.signal.fftshift(tf.signal.fft2d(hologram[:, :, 0])))
-        #         )), -1)],
-        #         axis=-1
-        #     )  # Use the hologram and the log abs fourier transform
-
-        def fourier(hologram):
+        def fourier(hologram):  # ToDo: Test with log only
             return tf.concat([
-                # tf.math.real(hologram[:, :, self.slice]),
-                tf.math.real(hologram),
-                tf.expand_dims(tf.math.log(
+                tf.math.real(hologram[:, :, self.slice]),
+                tf.expand_dims(tf.math.log(tf.math.square(
                     tf.abs(tf.signal.fftshift(tf.signal.fft2d(hologram[:, :, 0])))
-                ), -1)],
+                )), -1)],
                 axis=-1
             )  # Use the hologram and the log abs fourier transform
 
+        # def fourier(hologram):  # There are nan problems with log(0)
+        #     return tf.concat([
+        #         # tf.math.real(hologram[:, :, self.slice]),
+        #         tf.math.real(hologram),
+        #         tf.expand_dims(
+        #             tf.abs(tf.signal.fftshift(tf.signal.fft2d(hologram[:, :, 0]))), -1)],
+        #         axis=-1
+        #     )  # Use the hologram and the log abs fourier transform
+
         return tf.vectorized_map(fourier, x)  # Performs tf ops in max parallelism
+
+
+class Scheduler:
+    def __init__(self, changing_period, sprint_epoch, decrease_ratio=2, decay=0.1):
+        self.changing_period = changing_period
+        self.sprint_epoch = sprint_epoch
+        self.decrease_ratio = decrease_ratio
+        self.decay = decay
+
+    def schedule(self, epoch, lr):
+        if epoch % self.changing_period == 0 and 0 < epoch < self.sprint_epoch:
+            return lr / self.decrease_ratio
+        elif epoch < self.sprint_epoch:
+            return lr
+        else:
+            return lr * tf.math.exp(-self.decay)
 
 
 # Custom activation function to limit regression output possibilities

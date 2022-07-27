@@ -9,7 +9,7 @@
 #SBATCH --gres=gpu:3
 #SBATCH --nodes=1
 #SBATCH --nodelist=compute-0-11
-#SBATCH --ntasks-per-node=12
+#SBATCH --ntasks-per-node=32
 
 export PYTHONPATH="/home/mmonto95/focusnet:$PYTHONPATH"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
