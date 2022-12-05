@@ -24,6 +24,16 @@ class RegressionSequence(tf.keras.utils.Sequence):
             for file_name in batch_x]), np.array(batch_y)
 
 
+class UnalRegressionSequence(RegressionSequence):
+    def __getitem__(self, idx):
+        batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
+        batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
+
+        return np.array([
+            np.array(load_img(f"{self.dir}/{file_name}", color_mode=self.color_mode))
+            for file_name in batch_x]), np.array(batch_y)
+
+
 # Perform holors augmentation on holograms (Only 90°, 180° and 270° rotations)
 class Rotate90Randomly(tf.keras.layers.experimental.preprocessing.PreprocessingLayer):
 
@@ -47,23 +57,23 @@ class Fourier2D(tf.keras.layers.experimental.preprocessing.PreprocessingLayer):
         self.slice = sl
 
     def call(self, x: tf.Tensor):
-        def fourier(hologram):  # ToDo: Test with log only
+        # def fourier(hologram):  # ToDo: Test with log only
+            # return tf.concat([
+            #     tf.math.real(hologram[:, :, self.slice]),
+            #     tf.expand_dims(tf.math.log(tf.math.square(
+            #         tf.abs(tf.signal.fftshift(tf.signal.fft2d(hologram[:, :, 0])))
+            #     )), -1)],
+            #     axis=-1
+            # )  # Use the hologram and the log abs fourier transform
+
+        def fourier(hologram):  # There are nan problems with log(0)
             return tf.concat([
                 tf.math.real(hologram[:, :, self.slice]),
-                tf.expand_dims(tf.math.log(tf.math.square(
-                    tf.abs(tf.signal.fftshift(tf.signal.fft2d(hologram[:, :, 0])))
-                )), -1)],
+                # tf.math.real(hologram),
+                tf.expand_dims(
+                    tf.abs(tf.signal.fftshift(tf.signal.fft2d(hologram[:, :, 0]))), -1)],
                 axis=-1
             )  # Use the hologram and the log abs fourier transform
-
-        # def fourier(hologram):  # There are nan problems with log(0)
-        #     return tf.concat([
-        #         # tf.math.real(hologram[:, :, self.slice]),
-        #         tf.math.real(hologram),
-        #         tf.expand_dims(
-        #             tf.abs(tf.signal.fftshift(tf.signal.fft2d(hologram[:, :, 0]))), -1)],
-        #         axis=-1
-        #     )  # Use the hologram and the log abs fourier transform
 
         return tf.vectorized_map(fourier, x)  # Performs tf ops in max parallelism
 
