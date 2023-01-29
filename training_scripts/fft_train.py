@@ -10,16 +10,16 @@ from helpers import RegressionSequence, Rotate90Randomly, Fourier2D, Scheduler
 
 
 # Create a list of epochs
-name = '2headed_less_layers'
+name = '2headed_extra_layer_log_abs'
 epochs = 150
-batch_size = 16
-val_batch_size = 32
+batch_size = 64
+val_batch_size = 64
 changing_epoch = 120
 changing_period = 30
-learning_rate = 0.001
+learning_rate = 0.0005
 decay = 0.1
-factor = 2
-dropout = 0.25
+factor = 4
+dropout = 0.05
 title = f'{name}_e{epochs}_ce{changing_epoch}_lr{learning_rate}_d{decay}_bs{batch_size}_' \
         f'dr{dropout}_cp_{changing_period}_x{factor}'
 data_dir = '../holors'
@@ -81,13 +81,17 @@ with strategy.scope():
         layers.Conv2D(64 * factor, 3, padding='same', activation='swish'),
         layers.BatchNormalization(),
         layers.MaxPooling2D(),
-        # layers.Conv2D(128 * factor, 3, padding='same', activation='swish'),
-        # layers.BatchNormalization(),
-        # layers.MaxPooling2D(),
+        layers.Conv2D(128 * factor, 3, padding='same', activation='swish'),
+        layers.BatchNormalization(),
+        layers.MaxPooling2D(),
+        layers.Conv2D(256 * factor, 3, padding='same', activation='swish'),
+        layers.BatchNormalization(),
+        layers.MaxPooling2D(),
         layers.Dropout(dropout),
         layers.Flatten(),
         layers.Dense(32 * factor, activation='swish'),
-        layers.Dropout(dropout),
+        # layers.Dropout(dropout),
+        layers.Dense(32 * factor, activation='swish'),
         layers.Dense(32 * factor, activation='swish'),
         layers.Dense(1)
     ])
